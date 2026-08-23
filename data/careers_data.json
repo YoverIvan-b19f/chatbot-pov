@@ -1,0 +1,81 @@
+{
+  "carreras": {
+    "ingenieria_sistemas": {
+      "nombre": "Ingeniería de Sistemas",
+      "duracion": "5 años",
+      "descripcion": "Diseño, desarrollo y gestión de sistemas informáticos y soluciones tecnológicas.",
+      "instituciones": ["UNC", "UPN", "Instituto Tecnológico"],
+      "costo_mensual": {
+        "publica": "S/ 200-300",
+        "privada": "S/ 800-1500"
+      },
+      "areas": ["Tecnología", "Desarrollo", "Innovación"]
+    },
+    "educacion": {
+      "nombre": "Educación",
+      "duracion": "5 años",
+      "descripcion": "Formación de docentes para diferentes niveles y especialidades educativas.",
+      "instituciones": ["UNC", "UNACH"],
+      "costo_mensual": {
+        "publica": "S/ 150-250",
+        "privada": "S/ 600-1000"
+      },
+      "areas": ["Educación", "Formación", "Pedagogía"]
+    },
+    "administracion": {
+      "nombre": "Administración de Empresas",
+      "duracion": "5 años",
+      "descripcion": "Gestión y dirección de organizaciones, planificación estratégica y toma de decisiones.",
+      "instituciones": ["UNC", "UPN"],
+      "costo_mensual": {
+        "publica": "S/ 200-300",
+        "privada": "S/ 700-1200"
+      },
+      "areas": ["Negocios", "Gestión", "Liderazgo"]
+    },
+    "medicina": {
+      "nombre": "Medicina Humana",
+      "duracion": "7 años",
+      "descripcion": "Prevención, diagnóstico y tratamiento de enfermedades en pacientes.",
+      "instituciones": ["UNC"],
+      "costo_mensual": {
+        "publica": "S/ 300-400",
+        "privada": "S/ 1500-2500"
+      },
+      "areas": ["Salud", "Investigación", "Atención"]
+    },
+    "derecho": {
+      "nombre": "Derecho",
+      "duracion": "5 años",
+      "descripcion": "Estudio de las leyes, normas y su aplicación en la sociedad.",
+      "instituciones": ["UNC", "UPN"],
+      "costo_mensual": {
+        "publica": "S/ 200-300",
+        "privada": "S/ 800-1200"
+      },
+      "areas": ["Legal", "Justicia", "Asesoría"]
+    }
+  },
+  "becas": {
+    "beca_18": {
+      "nombre": "Beca 18",
+      "beneficios": "Cobertura completa de estudios, incluyendo matrícula, pensión, materiales y manutención",
+      "requisitos": [
+        "Pertenecer al 40% de menores ingresos",
+        "Nota mínima en examen de admisión",
+        "Cumplir con requisitos socioeconómicos"
+      ],
+      "proceso": "Postulación anual, evaluación socioeconómica y académica"
+    },
+    "pronabec": {
+      "nombre": "Pronabec",
+      "beneficios": "Becas parciales y completas para diferentes niveles educativos",
+      "requisitos": [
+        "Demostrar necesidad económica",
+        "Rendimiento académico destacado",
+        "Compromiso de retorno a la comunidad"
+      ],
+      "proceso": "Convocatorias regulares a través de PRONABEC"
+    }
+  }
+}

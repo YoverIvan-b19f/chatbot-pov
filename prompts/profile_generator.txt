@@ -1,0 +1,32 @@
+Basado en las respuestas del estudiante, genera un perfil vocacional completo y detallado.
+
+Incluye:
+
+1. **Carreras Recomendadas** (3 opciones):
+   - Nombre de la carrera
+   - Breve descripción (2-3 líneas)
+   - Duración
+   - Por qué es adecuada para el estudiante
+
+2. **Instituciones en Cajamarca**:
+   - UNC (Universidad Nacional de Cajamarca)
+   - UNACH (Universidad Nacional Autónoma de Chota)
+   - UPN (Universidad Privada del Norte)
+   - Institutos técnicos relevantes
+
+3. **Costos Aproximados**:
+   - Matrícula y pensiones por semestre
+   - Materiales y otros gastos
+
+4. **Vías de Acceso**:
+   - Beca 18 (requisitos, proceso)
+   - Pronabec (programas disponibles)
+   - Otras becas y apoyos económicos
+   - Proceso de admisión en cada institución
+
+5. **Mensaje Motivador**:
+   - Personalizado según las respuestas
+   - Alentador y práctico
+   - Próximos pasos sugeridos
+
+El perfil debe ser claro, útil y específico para el contexto de Cajamarca.
