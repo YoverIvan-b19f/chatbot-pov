@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environment variables
+.env
+*.env
+.env.local
+.env.*.local
+
+# Google Sheets credentials
+credentials.json
+*.json
+
+# Session data
+sessions.json
+*.session
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Flask
+instance/
+.webassets-cache
+
+# Ngrok
+ngrok.yml
+ngrok.log

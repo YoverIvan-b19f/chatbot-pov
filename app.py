@@ -12,7 +12,7 @@ from utils.sheets import GoogleSheetsHelper
 from utils.validators import validate_phone_number, sanitize_input
 from prompts import SYSTEM_PROMPT, QUESTIONS
 
-# Configuración de logging
+# Configuracion de logging
 def setup_logging():
     log_dir = os.path.dirname(os.getenv('LOG_FILE', 'logs/app.log'))
     if log_dir and not os.path.exists(log_dir):
@@ -22,7 +22,7 @@ def setup_logging():
         level=getattr(logging, os.getenv('LOG_LEVEL', 'INFO')),
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(os.getenv('LOG_FILE', 'logs/app.log')),
+            logging.FileHandler(os.getenv('LOG_FILE', 'logs/app.log'), encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
@@ -30,7 +30,7 @@ def setup_logging():
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Inicializar aplicación
+# Inicializar aplicacion
 app = Flask(__name__)
 app.config.from_object(config[os.getenv('FLASK_ENV', 'development')])
 
@@ -39,13 +39,21 @@ session_manager = SessionManager()
 openai_helper = OpenAIHelper()
 sheets_helper = GoogleSheetsHelper()
 
-# Inicializar cliente Twilio para verificar webhook
-twilio_client = Client(
-    app.config['TWILIO_ACCOUNT_SID'],
-    app.config['TWILIO_AUTH_TOKEN']
-)
+# Inicializar cliente Twilio (con manejo de errores)
+try:
+    if app.config['TWILIO_ACCOUNT_SID'] and app.config['TWILIO_AUTH_TOKEN']:
+        twilio_client = Client(
+            app.config['TWILIO_ACCOUNT_SID'],
+            app.config['TWILIO_AUTH_TOKEN']
+        )
+    else:
+        twilio_client = None
+        print("[WARNING] Credenciales de Twilio no configuradas")
+except Exception as e:
+    twilio_client = None
+    print(f"[WARNING] Error al inicializar Twilio: {str(e)}")
 
-# Estados de la conversación
+# Estados de la conversacion
 STATE_IDLE = 'idle'
 STATE_ACTIVE = 'active'
 STATE_COMPLETED = 'completed'
@@ -55,26 +63,23 @@ STATE_ERROR = 'error'
 def webhook():
     """Endpoint principal para mensajes de WhatsApp"""
     try:
-        # Validar que la solicitud viene de Twilio
-        # En producción, verificar firmas de Twilio
-        
         # Obtener datos del mensaje
         incoming_msg = request.form.get('Body', '').strip()
         sender = request.form.get('From', '')
         
         # Validar entrada
         if not sender or not incoming_msg:
-            return create_error_response("Mensaje inválido")
+            return create_error_response("Mensaje invalido")
         
         # Sanitizar entrada del usuario
         incoming_msg = sanitize_input(incoming_msg)
         
-        # Obtener ID anonimizado (últimos 4 dígitos del teléfono)
+        # Obtener ID anonimizado (ultimos 4 digitos del telefono)
         anonymized_id = sender[-4:] if sender else '0000'
         
-        logger.info(f"📱 Mensaje de {anonymized_id}: {incoming_msg[:50]}...")
+        logger.info(f" Mensaje de {anonymized_id}: {incoming_msg[:50]}...")
         
-        # Obtener o crear sesión
+        # Obtener o crear sesion
         session = session_manager.get_session(sender)
         
         # Manejar comandos especiales
@@ -87,7 +92,7 @@ def webhook():
         if incoming_msg in ['ESTADO', 'STATUS']:
             return handle_status(sender)
         
-        # Lógica principal según estado
+        # Logica principal segun estado
         if session['state'] == STATE_IDLE:
             if incoming_msg in ['HOLA', 'INICIAR', 'START', 'HOLI', 'COMENZAR']:
                 return handle_start(sender, anonymized_id)
@@ -109,23 +114,23 @@ def webhook():
             return create_welcome_response()
             
     except Exception as e:
-        logger.error(f"❌ Error en webhook: {str(e)}", exc_info=True)
-        return create_error_response("⚠️ Lo siento, hubo un error. Por favor, intenta de nuevo enviando 'HOLA'")
+        logger.error(f"Error en webhook: {str(e)}", exc_info=True)
+        return create_error_response("Lo siento, hubo un error. Por favor, intenta de nuevo enviando 'HOLA'")
 
 def create_welcome_response():
     """Crea respuesta de bienvenida"""
     resp = MessagingResponse()
     msg = resp.message()
     msg.body("""
-👋 ¡Hola! Soy VocalIA, tu orientador vocacional.
+Hola! Soy VocalIA, tu orientador vocacional.
 
-🎯 Estoy aquí para ayudarte a descubrir qué carrera podría ser ideal para ti.
+Estoy aqui para ayudarte a descubrir que carrera podria ser ideal para ti.
 
-📝 Para comenzar, envía 'HOLA' y te haré 8 preguntas sobre tus intereses.
+Para comenzar, envia 'HOLA' y te hare 8 preguntas sobre tus intereses.
 
-💡 También puedes enviar:
-• AYUDA - Ver opciones disponibles
-• REINICIAR - Comenzar de nuevo
+Tambien puedes enviar:
+AYUDA - Ver opciones disponibles
+REINICIAR - Comenzar de nuevo
     """)
     return str(resp)
 
@@ -136,61 +141,61 @@ def handle_help(sender):
     msg = resp.message()
     
     help_text = """
-📚 **AYUDA - Comandos disponibles:**
+AYUDA - Comandos disponibles:
 
-• **HOLA** - Iniciar el test vocacional
-• **REINICIAR** - Comenzar el test desde cero
-• **ESTADO** - Ver tu progreso actual
-• **AYUDA** - Mostrar este mensaje
+HOLA - Iniciar el test vocacional
+REINICIAR - Comenzar el test desde cero
+ESTADO - Ver tu progreso actual
+AYUDA - Mostrar este mensaje
 
-🎯 **Sobre el test:**
-Responderás 8 preguntas sobre tus intereses y habilidades.
-Al finalizar, recibirás un perfil con carreras recomendadas.
+Sobre el test:
+Responderas 8 preguntas sobre tus intereses y habilidades.
+Al finalizar, recibiras un perfil con carreras recomendadas.
 
-⏱️ Tiempo estimado: 5-10 minutos
+Tiempo estimado: 5-10 minutos
     """
     
     if session['state'] == STATE_ACTIVE:
         current_q = session.get('current_question', 0)
         total_q = len(QUESTIONS)
-        help_text += f"\n📊 Vas en la pregunta {current_q + 1} de {total_q}"
+        help_text += f"\nVas en la pregunta {current_q + 1} de {total_q}"
     
     msg.body(help_text)
     return str(resp)
 
 def handle_reset(sender):
-    """Reinicia la sesión del usuario"""
+    """Reinicia la sesion del usuario"""
     session_manager.reset_session(sender)
     resp = MessagingResponse()
     msg = resp.message()
-    msg.body("🔄 ¡Listo! He reiniciado tu progreso. Envía 'HOLA' para comenzar de nuevo.")
+    msg.body("Listo! He reiniciado tu progreso. Envia 'HOLA' para comenzar de nuevo.")
     return str(resp)
 
 def handle_status(sender):
-    """Muestra el estado actual de la sesión"""
+    """Muestra el estado actual de la sesion"""
     session = session_manager.get_session(sender)
     resp = MessagingResponse()
     msg = resp.message()
     
     if session['state'] == STATE_IDLE:
-        msg.body("📌 No tienes una sesión activa. Envía 'HOLA' para comenzar.")
+        msg.body("No tienes una sesion activa. Envia 'HOLA' para comenzar.")
     elif session['state'] == STATE_ACTIVE:
         current_q = session.get('current_question', 0)
         total_q = len(QUESTIONS)
         answered = len(session.get('answers', {}))
-        msg.body(f"📊 Progreso: Pregunta {answered + 1} de {total_q}\n✅ Respondidas: {answered}")
+        msg.body(f"Progreso: Pregunta {answered + 1} de {total_q}\nRespondidas: {answered}")
     elif session['state'] == STATE_COMPLETED:
-        msg.body("✅ ¡Ya completaste el test! Revisa tu perfil vocacional arriba.")
+        msg.body("Ya completaste el test! Revisa tu perfil vocacional arriba.")
     else:
-        msg.body("🔄 Estado desconocido. Envía 'REINICIAR' para comenzar de nuevo.")
+        msg.body("Estado desconocido. Envia 'REINICIAR' para comenzar de nuevo.")
     
     return str(resp)
 
 def handle_start(sender, anonymized_id):
-    """Inicia una nueva sesión de test"""
+    """Inicia una nueva sesion de test"""
     session = session_manager.get_session(sender)
     
-    # Resetear estado para nueva sesión
+    # Resetear estado para nueva sesion
     session_manager.reset_session(sender)
     session = session_manager.get_session(sender)
     
@@ -206,9 +211,9 @@ def handle_start(sender, anonymized_id):
     msg = resp.message()
     
     msg.body(f"""
-🎯 ¡Excelente! Te haré {len(QUESTIONS)} preguntas para conocerte mejor.
+Excelente! Te hare {len(QUESTIONS)} preguntas para conocerte mejor.
 
-📝 Responde con la letra de la opción que más te identifique.
+Responde con la letra de la opcion que mas te identifique.
 
 {format_question(first_question)}
     """)
@@ -229,7 +234,7 @@ def handle_question_response(sender, response, anonymized_id):
     session['answers'][answer_key] = response
     session_manager.save_session(sender, session)
     
-    # Verificar si es la última pregunta
+    # Verificar si es la ultima pregunta
     if current_q + 1 >= len(QUESTIONS):
         return generate_profile(sender, anonymized_id)
     
@@ -242,7 +247,7 @@ def handle_question_response(sender, response, anonymized_id):
     resp = MessagingResponse()
     msg = resp.message()
     
-    progress = f"📊 Pregunta {current_q + 2} de {len(QUESTIONS)}"
+    progress = f"Pregunta {current_q + 2} de {len(QUESTIONS)}"
     msg.body(f"{progress}\n\n{format_question(next_question)}")
     
     return str(resp)
@@ -252,7 +257,7 @@ def generate_profile(sender, anonymized_id):
     session = session_manager.get_session(sender)
     
     try:
-        # Preparar respuestas para análisis
+        # Preparar respuestas para analisis
         answers_text = "\n".join([f"Pregunta {k}: {v}" for k, v in session['answers'].items()])
         
         # Generar perfil con OpenAI
@@ -262,12 +267,15 @@ def generate_profile(sender, anonymized_id):
         )
         
         # Guardar en Google Sheets
-        sheets_helper.save_profile(
-            anonymized_id=anonymized_id,
-            answers=session['answers'],
-            profile=profile_text,
-            timestamp=datetime.now()
-        )
+        if sheets_helper and sheets_helper.sheet:
+            sheets_helper.save_profile(
+                anonymized_id=anonymized_id,
+                answers=session['answers'],
+                profile=profile_text,
+                timestamp=datetime.now()
+            )
+        else:
+            print(f"Perfil generado para {anonymized_id}: {profile_text[:100]}...")
         
         # Actualizar estado
         session['state'] = STATE_COMPLETED
@@ -280,32 +288,33 @@ def generate_profile(sender, anonymized_id):
         msg = resp.message()
         
         msg.body(f"""
-🎉 ¡Felicidades! Has completado el test vocacional.
+Felicidades! Has completado el test vocacional.
 
-📚 **Tu perfil vocacional:**
+Tu perfil vocacional:
 
 {profile_text}
 
-📌 Puedes enviar:
-• REINICIAR - Para hacer el test de nuevo
-• AYUDA - Para ver más opciones
+Puedes enviar:
+REINICIAR - Para hacer el test de nuevo
+AYUDA - Para ver mas opciones
 
-¡Éxito en tu camino educativo! 🚀
+Exito en tu camino educativo!
         """)
         
         return str(resp)
         
     except Exception as e:
-        logger.error(f"❌ Error generando perfil: {str(e)}")
+        logger.error(f"Error generando perfil: {str(e)}")
         
         # Intentar guardar al menos las respuestas
         try:
-            sheets_helper.save_profile(
-                anonymized_id=anonymized_id,
-                answers=session['answers'],
-                profile="ERROR: No se pudo generar el perfil",
-                timestamp=datetime.now()
-            )
+            if sheets_helper and sheets_helper.sheet:
+                sheets_helper.save_profile(
+                    anonymized_id=anonymized_id,
+                    answers=session['answers'],
+                    profile="ERROR: No se pudo generar el perfil",
+                    timestamp=datetime.now()
+                )
         except:
             pass
         
@@ -313,8 +322,8 @@ def generate_profile(sender, anonymized_id):
         session_manager.save_session(sender, session)
         
         return create_error_response(
-            "⚠️ Lo siento, hubo un error al generar tu perfil. "
-            "Por favor, envía 'REINICIAR' para intentar de nuevo."
+            "Lo siento, hubo un error al generar tu perfil. "
+            "Por favor, envia 'REINICIAR' para intentar de nuevo."
         )
 
 def handle_completion(sender, anonymized_id):
@@ -325,43 +334,42 @@ def handle_completion(sender, anonymized_id):
     
     if 'profile' in session:
         msg.body(f"""
-📚 Ya tienes tu perfil vocacional listo.
+Ya tienes tu perfil vocacional listo.
 
 {format_profile_preview(session['profile'])}
 
-🔄 Para hacer el test de nuevo, envía 'REINICIAR'
-❓ Para más ayuda, envía 'AYUDA'
+Para hacer el test de nuevo, envia 'REINICIAR'
+Para mas ayuda, envia 'AYUDA'
         """)
     else:
-        msg.body("👋 ¡Hola de nuevo! Para obtener tu perfil vocacional, envía 'HOLA' para comenzar el test.")
+        msg.body("Hola de nuevo! Para obtener tu perfil vocacional, envia 'HOLA' para comenzar el test.")
     
     return str(resp)
 
 def handle_error_recovery(sender):
     """Recupera sesiones en estado de error"""
-    session = session_manager.get_session(sender)
     resp = MessagingResponse()
     msg = resp.message()
     
     msg.body("""
-⚠️ Tu sesión anterior tuvo un error.
+Tu sesion anterior tuvo un error.
 
-Por favor, elige una opción:
-• REINICIAR - Comenzar de nuevo
-• AYUDA - Ver opciones disponibles
-• HOLA - Intentar continuar
+Por favor, elige una opcion:
+REINICIAR - Comenzar de nuevo
+AYUDA - Ver opciones disponibles
+HOLA - Intentar continuar
     """)
     
     return str(resp)
 
 def send_question_again(sender, question_index):
-    """Reenvía una pregunta porque la respuesta fue inválida"""
+    """Reenvia una pregunta porque la respuesta fue invalida"""
     question = QUESTIONS[question_index]
     resp = MessagingResponse()
     msg = resp.message()
     
     msg.body(f"""
-⚠️ Por favor, responde con una opción válida (A, B, C, D o E).
+Por favor, responde con una opcion valida (A, B, C, D o E).
 
 {format_question(question)}
     """)
@@ -378,11 +386,11 @@ def format_profile_preview(profile_text):
     return '\n'.join(lines) + "\n\n..."
 
 def validate_response(response, question_index):
-    """Valida que la respuesta sea válida"""
+    """Valida que la respuesta sea valida"""
     if not response:
         return False
     
-    # Validar que sea una opción válida (A, B, C, D, E)
+    # Validar que sea una opcion valida (A, B, C, D, E)
     valid_options = ['A', 'B', 'C', 'D', 'E']
     response_clean = response.strip().upper()
     
@@ -390,7 +398,7 @@ def validate_response(response, question_index):
     if response_clean in valid_options:
         return True
     
-    # También aceptar respuestas que contengan la opción
+    # Tambien aceptar respuestas que contengan la opcion
     for option in valid_options:
         if option in response_clean:
             return True
@@ -412,7 +420,7 @@ def health_check():
         services_status = {
             'twilio': bool(app.config['TWILIO_ACCOUNT_SID']),
             'openai': bool(app.config['OPENAI_API_KEY']),
-            'google_sheets': sheets_helper.sheet is not None,
+            'google_sheets': sheets_helper.sheet is not None if sheets_helper else False,
             'session_manager': bool(session_manager)
         }
         
@@ -421,7 +429,7 @@ def health_check():
             'timestamp': datetime.now().isoformat(),
             'version': app.config.get('APP_VERSION', '1.0.0'),
             'services': services_status,
-            'active_sessions': len(session_manager.sessions)
+            'active_sessions': len(session_manager.sessions) if session_manager else 0
         }), 200
         
     except Exception as e:
@@ -434,10 +442,10 @@ def health_check():
 
 @app.route('/stats', methods=['GET'])
 def get_stats():
-    """Endpoint para estadísticas"""
+    """Endpoint para estadisticas"""
     try:
-        session_stats = session_manager.get_stats()
-        sheets_stats = sheets_helper.get_stats() if sheets_helper.sheet else None
+        session_stats = session_manager.get_stats() if session_manager else {}
+        sheets_stats = sheets_helper.get_stats() if sheets_helper and sheets_helper.sheet else None
         
         return jsonify({
             'session_stats': session_stats,
@@ -460,10 +468,20 @@ def internal_error(error):
 
 if __name__ == '__main__':
     try:
-        # Validar configuración
-        app.config.validate()
-        logger.info(f"🚀 Iniciando {app.config['APP_NAME']} v{app.config['APP_VERSION']}")
-        logger.info(f"📊 Entorno: {app.config['FLASK_ENV']}")
+        # Validar configuracion (con manejo de errores)
+        try:
+            app.config.validate()
+        except Exception as e:
+            print(f"[WARNING] Error en validacion: {str(e)}")
+        
+        print(f" Iniciando {app.config['APP_NAME']} v{app.config['APP_VERSION']}")
+        print(f" Entorno: {app.config['FLASK_ENV']}")
+        
+        # Mostrar advertencias de configuracion
+        if not app.config['TWILIO_ACCOUNT_SID'] or app.config['TWILIO_ACCOUNT_SID'].startswith('ACxxx'):
+            print("[WARNING] TWILIO_ACCOUNT_SID no configurado correctamente")
+        if not app.config['OPENAI_API_KEY'] or app.config['OPENAI_API_KEY'].startswith('sk-xxx'):
+            print("[WARNING] OPENAI_API_KEY no configurado correctamente")
         
         app.run(
             host='0.0.0.0',
@@ -472,5 +490,5 @@ if __name__ == '__main__':
         )
         
     except Exception as e:
-        logger.error(f"❌ Error al iniciar: {str(e)}")
+        print(f"[ERROR] Error al iniciar: {str(e)}")
         exit(1)

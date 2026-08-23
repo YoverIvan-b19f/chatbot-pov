@@ -35,13 +35,32 @@ class Config:
     LOG_FILE = os.getenv('LOG_FILE', 'logs/app.log')
     
     # Application Configuration
-    APP_NAME = "VocalIA - Chatbot de Orientación Vocacional"
+    APP_NAME = "VocalIA - Chatbot de Orientacion Vocacional"
     APP_VERSION = "1.0.0"
     MAX_RETRIES = int(os.getenv('MAX_RETRIES', '3'))
     
     @classmethod
     def validate(cls):
         """Valida que las configuraciones críticas estén presentes"""
+        # En desarrollo, solo mostrar advertencias
+        if cls.FLASK_ENV == 'development':
+            required_vars = [
+                'TWILIO_ACCOUNT_SID',
+                'TWILIO_AUTH_TOKEN',
+                'OPENAI_API_KEY'
+            ]
+            
+            missing = []
+            for var in required_vars:
+                if not getattr(cls, var) or getattr(cls, var).startswith('sk-xxx'):
+                    missing.append(var)
+            
+            if missing:
+                print(f"[WARNING] Faltan variables de entorno: {', '.join(missing)}")
+                print("[WARNING] El sistema funcionara en modo de prueba limitado")
+            return True
+        
+        # En produccion, validacion estricta
         required_vars = [
             'TWILIO_ACCOUNT_SID',
             'TWILIO_AUTH_TOKEN',
@@ -58,7 +77,7 @@ class Config:
         
         return True
 
-# Configuración para diferentes entornos
+# Configuracion para diferentes entornos
 class DevelopmentConfig(Config):
     DEBUG = True
     FLASK_ENV = 'development'
